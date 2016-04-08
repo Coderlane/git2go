@@ -217,6 +217,32 @@ func (stats *DiffStats) FilesChanged() int {
 	return int(C.git_diff_stats_files_changed(stats.ptr))
 }
 
+type DiffStatsFormat int
+
+const (
+	DiffStatsNone           DiffStatsFormat = C.GIT_DIFF_STATS_NONE
+	DiffStatsFull           DiffStatsFormat = C.GIT_DIFF_STATS_FULL
+	DiffStatsShort          DiffStatsFormat = C.GIT_DIFF_STATS_SHORT
+	DiffStatsNumber         DiffStatsFormat = C.GIT_DIFF_STATS_NUMBER
+	DiffStatsIncludeSummary DiffStatsFormat = C.GIT_DIFF_STATS_INCLUDE_SUMMARY
+)
+
+func (stats *DiffStats) ToBuf(format DiffStatsFormat, width uint) (string, int) {
+	buf := C.git_buf{}
+	defer C.git_buf_free(&buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := int(C.git_diff_stats_to_buf(&buf,
+		stats.ptr, C.git_diff_stats_format_t(format), C.size_t(width)))
+	if ret != 0 {
+		return "", ret
+	}
+
+	return C.GoString(buf.ptr), ret
+}
+
 func (diff *Diff) Stats() (*DiffStats, error) {
 	stats := new(DiffStats)
 
